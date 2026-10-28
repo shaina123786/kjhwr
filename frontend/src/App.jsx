@@ -38,7 +38,15 @@ export default function App() {
   const [metrics, setMetrics] = useState(null);
   const [series, setSeries] = useState([]);
   const [error, setError] = useState(null);
-    const [daily, setDaily] = useState([]);
+  const [daily, setDaily] = useState([]);
+  const [horizon, setHorizon] = useState([]);
+
+  useEffect(() => {
+    fetch(`${API}/api/horizon`)
+      .then((r) => r.json())
+      .then(setHorizon)
+      .catch((e) => setError(e.message));
+  }, []);
 
   useEffect(() => {
     setError(null);
@@ -48,7 +56,7 @@ export default function App() {
     ])
       .then(([m, f]) => {
         setMetrics(m.overall);
-                setDaily(m.daily.map((d) => ({ date: d.date.slice(5), Bias: d.bias })));
+        setDaily(m.daily.map((d) => ({ date: d.date.slice(5), Bias: d.bias })));
         setSeries(
           f.map((p) => ({
             t: p.time.slice(5, 16).replace("T", " "),
@@ -106,7 +114,9 @@ export default function App() {
             <Line type="monotone" dataKey="Forecast" stroke="#ff7f0e" dot={false} strokeWidth={2} />
           </LineChart>
         </ResponsiveContainer>
-              <h3 style={{ marginTop: 24 }}>Daily bias (forecast - actual, MW)</h3>
+      </div>
+
+      <h3 style={{ marginTop: 24 }}>Daily bias (forecast - actual, MW)</h3>
       <div style={{ ...card, height: 300 }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={daily}>
@@ -118,6 +128,20 @@ export default function App() {
           </BarChart>
         </ResponsiveContainer>
       </div>
+
+      <h3 style={{ marginTop: 24 }}>Error vs forecast horizon (hours before target)</h3>
+      <div style={{ ...card, height: 300 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={horizon}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="horizon" />
+            <YAxis unit=" MW" width={80} />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="mae" name="MAE" fill="#2ca02c" />
+            <Bar dataKey="bias" name="Bias" fill="#d62728" />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );

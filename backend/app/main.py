@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-from .core import build_comparison, compute_metrics
+from .core import build_comparison, compute_metrics, horizon_metrics
 
 app = FastAPI(title="Wind Forecast Monitor")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -38,3 +38,6 @@ def metrics(cutoff_hour: int = CutoffHour):
         {"date": d, **compute_metrics(g)} for d, g in m.groupby("date")
     ]
     return {"cutoff_hour": cutoff_hour, "overall": compute_metrics(m), "daily": daily}
+@app.get("/api/horizon")
+def horizon():
+    return horizon_metrics()

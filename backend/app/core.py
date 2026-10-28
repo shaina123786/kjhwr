@@ -60,3 +60,22 @@ def compute_metrics(m: pd.DataFrame) -> dict:
         "mae_pct_of_mean_actual": round(float(abs_err.mean() / m.actual.mean() * 100), 1),
         "pct_over_forecast": round(float((m.error > 0).mean() * 100), 1),
     }
+def horizon_metrics() -> list[dict]:
+    """Error by forecast horizon, using every published forecast (not just decision-time ones)."""
+    f = load_forecasts()
+    a = load_actuals()
+    m = f.merge(a, on="startTime", how="inner")
+    m = m[(m.horizon_h >= 0) & (m.horizon_h <= 48)]
+    m["error"] = m.forecast - m.actual
+    m["bucket"] = (m.horizon_h // 6 * 6).astype(int)
+    out = []
+    for b, g in m.groupby("bucket"):
+        out.append(
+            {
+                "horizon": f"{b}-{b + 6}h",
+                "n": int(len(g)),
+                "mae": round(float(g.error.abs().mean()), 1),
+                "bias": round(float(g.error.mean()), 1),
+            }
+        )
+    return out
