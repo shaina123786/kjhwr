@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import {
+  BarChart,
+  Bar,
   LineChart,
   Line,
   XAxis,
@@ -36,6 +38,7 @@ export default function App() {
   const [metrics, setMetrics] = useState(null);
   const [series, setSeries] = useState([]);
   const [error, setError] = useState(null);
+    const [daily, setDaily] = useState([]);
 
   useEffect(() => {
     setError(null);
@@ -45,6 +48,7 @@ export default function App() {
     ])
       .then(([m, f]) => {
         setMetrics(m.overall);
+                setDaily(m.daily.map((d) => ({ date: d.date.slice(5), Bias: d.bias })));
         setSeries(
           f.map((p) => ({
             t: p.time.slice(5, 16).replace("T", " "),
@@ -102,6 +106,18 @@ export default function App() {
             <Line type="monotone" dataKey="Forecast" stroke="#ff7f0e" dot={false} strokeWidth={2} />
           </LineChart>
         </ResponsiveContainer>
+              <h3 style={{ marginTop: 24 }}>Daily bias (forecast - actual, MW)</h3>
+      <div style={{ ...card, height: 300 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={daily}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" />
+            <YAxis unit=" MW" width={80} />
+            <Tooltip />
+            <Bar dataKey="Bias" fill="#d62728" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
       </div>
     </div>
   );
