@@ -10,24 +10,51 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  ReferenceLine,
 } from "recharts";
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
-const card = {
-  background: "white",
-  borderRadius: 8,
-  padding: 16,
-  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-  minWidth: 150,
+
+const C = {
+  navy: "#0f2742",
+  blue: "#2563eb",
+  orange: "#f97316",
+  red: "#dc2626",
+  green: "#16a34a",
+  text: "#0f172a",
+  muted: "#64748b",
+  border: "#e2e8f0",
+  bg: "#f1f5f9",
 };
 
-function Card({ label, value, unit }) {
+const panel = {
+  background: "white",
+  borderRadius: 14,
+  padding: 20,
+  border: `1px solid ${C.border}`,
+  boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+};
+
+function Stat({ label, value, unit, hint, accent }) {
   return (
-    <div style={card}>
-      <div style={{ fontSize: 13, color: "#667" }}>{label}</div>
-      <div style={{ fontSize: 24, fontWeight: 700 }}>
-        {value} <span style={{ fontSize: 14, fontWeight: 400 }}>{unit}</span>
+    <div style={{ ...panel, padding: 16, flex: "1 1 160px", borderTop: `3px solid ${accent}` }}>
+      <div style={{ fontSize: 12, color: C.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>
+        {label}
       </div>
+      <div style={{ fontSize: 28, fontWeight: 700, color: C.text, marginTop: 4 }}>
+        {value} <span style={{ fontSize: 14, fontWeight: 500, color: C.muted }}>{unit}</span>
+      </div>
+      <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{hint}</div>
+    </div>
+  );
+}
+
+function Section({ title, subtitle, children, height }) {
+  return (
+    <div style={{ ...panel, marginTop: 20 }}>
+      <div style={{ fontSize: 17, fontWeight: 600, color: C.text }}>{title}</div>
+      <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>{subtitle}</div>
+      <div style={{ height }}>{children}</div>
     </div>
   );
 }
@@ -36,9 +63,9 @@ export default function App() {
   const [cutoff, setCutoff] = useState(9);
   const [metrics, setMetrics] = useState(null);
   const [series, setSeries] = useState([]);
-  const [error, setError] = useState(null);
   const [daily, setDaily] = useState([]);
   const [horizon, setHorizon] = useState([]);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetch(`${API}/api/horizon`)
@@ -68,80 +95,130 @@ export default function App() {
   }, [cutoff]);
 
   return (
-    <div style={{ padding: 24, fontFamily: "sans-serif", maxWidth: 1100, margin: "0 auto" }}>
-      <h1>Wind Forecast Monitor</h1>
-      <p style={{ color: "#667" }}>
-        Day-ahead wind forecast vs actual, January 2026 (national, UTC)
-      </p>
-
-      <label>
-        Decision cutoff (UTC hour on D-1): <b>{cutoff}:00</b>
-        <br />
-        <input
-          type="range"
-          min="0"
-          max="23"
-          value={cutoff}
-          onChange={(e) => setCutoff(Number(e.target.value))}
-          style={{ width: 300 }}
-        />
-      </label>
-
-      {error && <p style={{ color: "red" }}>Error: {error}</p>}
-      {!metrics && !error && <p>Loading...</p>}
-
-      {metrics && (
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", margin: "20px 0" }}>
-          <Card label="MAE" value={metrics.mae} unit="MW" />
-          <Card label="RMSE" value={metrics.rmse} unit="MW" />
-          <Card label="Bias (forecast - actual)" value={metrics.bias} unit="MW" />
-          <Card label="P90 abs error" value={metrics.p90_abs_error} unit="MW" />
-          <Card label="MAE % of mean wind" value={metrics.mae_pct_of_mean_actual} unit="%" />
-          <Card label="Hours over-forecast" value={metrics.pct_over_forecast} unit="%" />
+    <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "Inter, system-ui, sans-serif" }}>
+      <header style={{ background: C.navy, color: "white", padding: "22px 0" }}>
+        <div style={{ maxWidth: 1150, margin: "0 auto", padding: "0 24px" }}>
+          <div style={{ fontSize: 26, fontWeight: 700 }}>Wind Forecast Monitor</div>
+          <div style={{ color: "#93c5fd", fontSize: 14, marginTop: 4 }}>
+            Day-ahead wind forecast vs actual, UK national, January 2026 (UTC)
+          </div>
         </div>
-      )}
+      </header>
 
-      <div style={{ ...card, height: 420 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={series}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="t" minTickGap={60} />
-            <YAxis unit=" MW" width={80} />
-            <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="Actual" stroke="#1f77b4" dot={false} strokeWidth={2} />
-            <Line type="monotone" dataKey="Forecast" stroke="#ff7f0e" dot={false} strokeWidth={2} />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+      <main style={{ maxWidth: 1150, margin: "0 auto", padding: "24px" }}>
+        <div style={panel}>
+          <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+            <div>
+              <div style={{ fontWeight: 600, color: C.text }}>Decision cutoff on D-1</div>
+              <div style={{ fontSize: 13, color: C.muted }}>
+                Only forecasts published before this time are used for the next day
+              </div>
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 700, color: C.blue }}>
+              {String(cutoff).padStart(2, "0")}:00 UTC
+            </div>
+          </div>
+          <input
+            type="range"
+            min="0"
+            max="23"
+            value={cutoff}
+            onChange={(e) => setCutoff(Number(e.target.value))}
+            style={{ width: "100%", marginTop: 12, accentColor: C.blue }}
+          />
+        </div>
 
-      <h3 style={{ marginTop: 24 }}>Daily bias (forecast - actual, MW)</h3>
-      <div style={{ ...card, height: 300 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={daily}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis unit=" MW" width={80} />
-            <Tooltip />
-            <Bar dataKey="Bias" fill="#d62728" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+        {error && <p style={{ color: C.red }}>Error: {error}</p>}
+        {!metrics && !error && (
+          <p style={{ color: C.muted }}>Loading data (the server may take up to a minute to wake up)...</p>
+        )}
 
-      <h3 style={{ marginTop: 24 }}>Error vs forecast horizon (hours before target)</h3>
-      <div style={{ ...card, height: 300 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={horizon}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="horizon" />
-            <YAxis unit=" MW" width={80} />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="mae" name="MAE" fill="#2ca02c" />
-            <Bar dataKey="bias" name="Bias" fill="#d62728" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+        {metrics && (
+          <>
+            <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 20 }}>
+              <Stat label="MAE" value={metrics.mae} unit="MW" hint="Average miss" accent={C.blue} />
+              <Stat label="RMSE" value={metrics.rmse} unit="MW" hint="Penalises big misses" accent={C.blue} />
+              <Stat label="Bias" value={metrics.bias} unit="MW" hint="Forecast minus actual" accent={C.red} />
+              <Stat label="P90 error" value={metrics.p90_abs_error} unit="MW" hint="9 in 10 hours below this" accent={C.orange} />
+              <Stat label="MAE / mean wind" value={metrics.mae_pct_of_mean_actual} unit="%" hint="Relative error" accent={C.green} />
+              <Stat label="Over-forecast" value={metrics.pct_over_forecast} unit="%" hint="Share of hours" accent={C.red} />
+            </div>
+
+            <div
+              style={{
+                ...panel,
+                marginTop: 20,
+                background: "#eff6ff",
+                borderColor: "#bfdbfe",
+                color: C.text,
+                fontSize: 14,
+              }}
+            >
+              <b>Takeaway:</b> at a {String(cutoff).padStart(2, "0")}:00 cutoff the forecast is off by{" "}
+              {metrics.mae} MW on average and is too high in {metrics.pct_over_forecast}% of hours. Consider
+              buffering the wind forecast downward by about {Math.round(metrics.bias)} MW when sizing the
+              day-ahead purchase.
+            </div>
+          </>
+        )}
+
+        <Section
+          title="Actual vs forecast wind generation"
+          subtitle="Forecast shown is the latest one available at the decision cutoff"
+          height={380}
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={series}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+              <XAxis dataKey="t" minTickGap={70} tick={{ fontSize: 12 }} />
+              <YAxis unit=" MW" width={85} tick={{ fontSize: 12 }} />
+              <Tooltip />
+              <Legend />
+              <Line type="monotone" dataKey="Actual" stroke={C.blue} dot={false} strokeWidth={2} />
+              <Line type="monotone" dataKey="Forecast" stroke={C.orange} dot={false} strokeWidth={2} />
+            </LineChart>
+          </ResponsiveContainer>
+        </Section>
+
+        <Section
+          title="Daily bias"
+          subtitle="Above zero means the forecast was too high that day"
+          height={280}
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={daily}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+              <YAxis unit=" MW" width={85} tick={{ fontSize: 12 }} />
+              <Tooltip />
+              <ReferenceLine y={0} stroke={C.muted} />
+              <Bar dataKey="Bias" fill={C.red} radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Section>
+
+        <Section
+          title="Error vs forecast horizon"
+          subtitle="Hours between forecast publication and target time. Older forecasts are less accurate."
+          height={280}
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={horizon}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+              <XAxis dataKey="horizon" tick={{ fontSize: 12 }} />
+              <YAxis unit=" MW" width={85} tick={{ fontSize: 12 }} />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="mae" name="MAE" fill={C.green} radius={[3, 3, 0, 0]} />
+              <Bar dataKey="bias" name="Bias" fill={C.red} radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Section>
+
+        <p style={{ color: C.muted, fontSize: 12, marginTop: 24 }}>
+          Source: Elexon BMRS (FUELHH actuals, WINDFOR forecasts). Metrics computed on hours where both exist.
+        </p>
+      </main>
     </div>
   );
 }
